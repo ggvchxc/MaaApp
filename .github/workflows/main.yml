@@ -1,0 +1,35 @@
+name: Build Maa APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract project
+        run: unzip -q MaaAppAndroid_CloudBuild.zip -d source
+
+      - name: Build APK
+        run: |
+          cd source/MaaAppAndroid
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Maa-debug-apk
+          path: source/MaaAppAndroid/app/build/outputs/apk/debug/app-debug.apk

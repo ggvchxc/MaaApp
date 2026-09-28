@@ -11,25 +11,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Extract project
-        run: unzip -q MaaAppAndroid_CloudBuild.zip -d source
+        run: |
+          mkdir -p source
+          unzip -q MaaAppAndroid_CloudBuild.zip -d source
+          echo "=== Project files ==="
+          find source -maxdepth 4 -type f | head -200
+
+      - name: Find Android project
+        run: |
+          echo "=== Gradle wrappers ==="
+          find source -name gradlew -type f
 
       - name: Build APK
         run: |
-          cd source/MaaAppAndroid
+          PROJECT=$(find source -name gradlew -type f -print -quit | xargs -r dirname)
+
+          if [ -z "$PROJECT" ]; then
+            echo "ERROR: gradlew not found"
+            echo "The ZIP does not contain a Gradle wrapper."
+            exit 1
+          fi
+
+          echo "Building project: $PROJECT"
+          cd "$PROJECT"
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Maa-debug-apk
-          path: source/MaaAppAndroid/app/build/outputs/apk/debug/app-debug.apk
+          path: "**/app/build/outputs/apk/debug/app-debug.apk"
